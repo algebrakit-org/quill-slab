@@ -311,9 +311,14 @@ class ShadowDOMRoot extends DOMRoot {
   }
 
   /**
-   * Detects if the current browser is Safari,  which has specific quirks related to shadow DOM.
+   * Detects if the current browser is Safari, which has specific quirks related to shadow DOM.
+   * Note: UA sniffing alone is not reliable because Chrome's responsive/device emulation mode
+   * replaces the UA with a real device UA (e.g. iPad) that does not contain "Chrome".
+   * We guard against this by checking window.chrome, which is a Chrome engine global that
+   * is NOT affected by DevTools UA overrides.
    */
   protected isSafari(): boolean {
+    if (typeof window !== 'undefined' && (window as any).chrome) return false;
     return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   }
 
