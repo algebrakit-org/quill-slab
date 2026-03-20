@@ -19,10 +19,12 @@ type SelectionInfo = {
 class Editor {
   scroll: Scroll;
   delta: Delta;
+  convertSpacesToNbsp: boolean;
 
-  constructor(scroll: Scroll) {
+  constructor(scroll: Scroll, convertSpacesToNbsp = true) {
     this.scroll = scroll;
     this.delta = this.getDelta();
+    this.convertSpacesToNbsp = convertSpacesToNbsp;
   }
 
   applyDelta(delta: Delta): Delta {
@@ -201,9 +203,9 @@ class Editor {
       const lineLength = line.length();
       const isWithinLine = line.length() >= lineOffset + length;
       if (isWithinLine && !(lineOffset === 0 && length === lineLength)) {
-        return convertHTML(line, lineOffset, length, true);
+        return convertHTML(line, lineOffset, length, true, this.convertSpacesToNbsp);
       }
-      return convertHTML(this.scroll, index, length, true);
+      return convertHTML(this.scroll, index, length, true, this.convertSpacesToNbsp);
     }
     return '';
   }
@@ -327,13 +329,14 @@ function convertListHTML(
   items: ListItem[],
   lastIndent: number,
   types: string[],
+  convertSpacesToNbsp: boolean,
 ): string {
   if (items.length === 0) {
     const [endTag] = getListType(types.pop());
     if (lastIndent <= 0) {
       return `</li></${endTag}>`;
     }
-    return `</li></${endTag}>${convertListHTML([], lastIndent - 1, types)}`;
+    return `</li></${endTag}>${convertListHTML([], lastIndent - 1, types, convertSpacesToNbsp)}`;
   }
   const [{ child, offset, length, indent, type }, ...rest] = items;
   const [tag, attribute] = getListType(type);
@@ -344,9 +347,11 @@ function convertListHTML(
         child,
         offset,
         length,
-      )}${convertListHTML(rest, indent, types)}`;
+        false,
+        convertSpacesToNbsp,
+      )}${convertListHTML(rest, indent, types, convertSpacesToNbsp)}`;
     }
-    return `<${tag}><li>${convertListHTML(items, lastIndent + 1, types)}`;
+    return `<${tag}><li>${convertListHTML(items, lastIndent + 1, types, convertSpacesToNbsp)}`;
   }
   const previousType = types[types.length - 1];
   if (indent === lastIndent && type === previousType) {
@@ -354,10 +359,12 @@ function convertListHTML(
       child,
       offset,
       length,
-    )}${convertListHTML(rest, indent, types)}`;
+      false,
+      convertSpacesToNbsp,
+    )}${convertListHTML(rest, indent, types, convertSpacesToNbsp)}`;
   }
   const [endTag] = getListType(types.pop());
-  return `</li></${endTag}>${convertListHTML(items, lastIndent - 1, types)}`;
+  return `</li></${endTag}>${convertListHTML(items, lastIndent - 1, types, convertSpacesToNbsp)}`;
 }
 
 function convertHTML(
@@ -365,13 +372,16 @@ function convertHTML(
   index: number,
   length: number,
   isRoot = false,
+  convertSpacesToNbsp = true,
 ): string {
   if ('html' in blot && typeof blot.html === 'function') {
     return blot.html(index, length);
   }
   if (blot instanceof TextBlot) {
     const escapedText = escapeText(blot.value().slice(index, index + length));
-    return escapedText.replaceAll(' ', '&nbsp;');
+    return convertSpacesToNbsp
+      ? escapedText.replaceAll(' ', '&nbsp;')
+      : escapedText;
   }
   if (blot instanceof ParentBlot) {
     // TODO fix API
@@ -390,11 +400,11 @@ function convertHTML(
           type: formats.list,
         });
       });
-      return convertListHTML(items, -1, []);
+      return convertListHTML(items, -1, [], convertSpacesToNbsp);
     }
     const parts: string[] = [];
     blot.children.forEachAt(index, length, (child, offset, childLength) => {
-      parts.push(convertHTML(child, offset, childLength));
+      parts.push(convertHTML(child, offset, childLength, false, convertSpacesToNbsp));
     });
     if (isRoot || blot.statics.blotName === 'list') {
       return parts.join('');

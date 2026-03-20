@@ -59,6 +59,12 @@ export interface QuillOptions {
    * @default null
    */
   formats?: string[] | null;
+
+  /**
+   * Whether to convert spaces to `&nbsp;` when generating HTML output.
+   * @default true
+   */
+  convertSpacesToNbsp?: boolean;
 }
 
 /**
@@ -73,6 +79,7 @@ export interface ExpandedQuillOptions
   modules: Record<string, unknown>;
   bounds?: HTMLElement | null;
   readOnly: boolean;
+  convertSpacesToNbsp: boolean;
 }
 
 class Quill {
@@ -88,6 +95,7 @@ class Quill {
     readOnly: false,
     registry: globalRegistry,
     theme: 'default',
+    convertSpacesToNbsp: true,
   } satisfies Partial<QuillOptions>;
   static events = Emitter.events;
   static sources = Emitter.sources;
@@ -226,7 +234,7 @@ class Quill {
       emitter: this.emitter,
       domRoot: this.domRoot,
     }) as Scroll;
-    this.editor = new Editor(this.scroll);
+    this.editor = new Editor(this.scroll, this.options.convertSpacesToNbsp);
     this.selection = new Selection(this.scroll, this.emitter, this.domRoot);
     this.composition = new Composition(this.scroll, this.emitter);
     this.theme = new this.options.theme(this, this.options); // eslint-disable-line new-cap
@@ -697,6 +705,7 @@ class Quill {
   scrollSelectionIntoView() {
     const range = this.selection.lastRange;
     const bounds = range && this.selection.getBounds(range.index, range.length);
+    console.log('[scrollSelectionIntoView] range:', JSON.stringify(range), 'bounds:', bounds ? JSON.stringify({top: bounds.top, bottom: bounds.bottom, left: bounds.left, right: bounds.right}) : null);
     if (bounds) {
       this.scrollRectIntoView(bounds);
     }
