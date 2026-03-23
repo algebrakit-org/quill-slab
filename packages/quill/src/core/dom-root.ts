@@ -311,10 +311,30 @@ class ShadowDOMRoot extends DOMRoot {
   }
 
   /**
-   * Detects if the current browser is Safari,  which has specific quirks related to shadow DOM.
+   * Detects the browser family (Chrome, Firefox, Safari).
+   * Note: UA sniffing is unreliable because DevTools responsive/device emulation mode
+   * overrides navigator.userAgent with a simulated device UA (e.g. iPad), masking the
+   * actual engine. Detection is therefore based on engine-level globals and CSS properties,
+   * which are not affected by DevTools overrides. UA string is used as a last resort fallback.
    */
+  protected detectEngine(): 'firefox' | 'chrome' | 'safari' | null {
+    if ('MozAppearance' in document.documentElement.style) return 'firefox';
+    if ((window as any).chrome != null) return 'chrome';
+    // Chromium-based browsers also support webkit appearance, but are ruled out in the rule above
+    if (CSS.supports('-webkit-appearance', 'none')) return 'safari';
+
+    // Fallback: UA string (less reliable, but better than 'unknown')
+    const ua = navigator.userAgent;
+    if (/Firefox/i.test(ua)) return 'firefox';
+    if (/Chrome/i.test(ua)) return 'chrome';
+    if (/Safari/i.test(ua)) return 'safari';
+
+    // Unable to detect
+    return null;
+  };
+
   protected isSafari(): boolean {
-    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    return this.detectEngine() === 'safari';
   }
 
 }
