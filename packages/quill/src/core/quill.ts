@@ -705,7 +705,6 @@ class Quill {
   scrollSelectionIntoView() {
     const range = this.selection.lastRange;
     const bounds = range && this.selection.getBounds(range.index, range.length);
-    console.log('[scrollSelectionIntoView] range:', JSON.stringify(range), 'bounds:', bounds ? JSON.stringify({top: bounds.top, bottom: bounds.bottom, left: bounds.left, right: bounds.right}) : null);
     if (bounds) {
       this.scrollRectIntoView(bounds);
     }
