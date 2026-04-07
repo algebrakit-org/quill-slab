@@ -320,13 +320,13 @@ class ShadowDOMRoot extends DOMRoot {
   protected detectEngine(): 'firefox' | 'chrome' | 'safari' | null {
     if ('MozAppearance' in document.documentElement.style) return 'firefox';
     if ((window as any).chrome != null) return 'chrome';
+    if (/Chrome/i.test(navigator.userAgent)) return 'chrome';        
     // Chromium-based browsers also support webkit appearance, but are ruled out in the rule above
     if (CSS.supports('-webkit-appearance', 'none')) return 'safari';
 
     // Fallback: UA string (less reliable, but better than 'unknown')
     const ua = navigator.userAgent;
     if (/Firefox/i.test(ua)) return 'firefox';
-    if (/Chrome/i.test(ua)) return 'chrome';
     if (/Safari/i.test(ua)) return 'safari';
 
     // Unable to detect
